@@ -1,6 +1,5 @@
 # This is the math utils module.
 # using in heroku, with image utils module.
-import pandas
 
 class Math_utils(object):
     """
@@ -9,19 +8,19 @@ class Math_utils(object):
     =============
     arguments:
         * senseki: (dictionary) stores values for each game.
-        * history: (string) data path for user's game history(csv file)
+        * fu: (<fileutils>) fileutils’ instance.
     attributes:
         
     """
     
-    def __init__(self, senseki=None, history=None):
+    def __init__(self, senseki=None, fu=None):
         # senseki is the dictionary of the game.
         
-        # get history data
-        self.history = pandas.read_csv(history)
+        # set fileutils instance
+        self.fu = fu
         
         # add game data to the history.
-        self._update_history(senseki)
+        self.fu.update_history(senseki)
         
         
     def  _update_history(self, senseki):
