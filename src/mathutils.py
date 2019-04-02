@@ -10,106 +10,91 @@ class Math_utils(object):
         * senseki: (dictionary) stores values for each game.
         * fu: (<fileutils>) fileutils’ instance.
     attributes:
-        
+
     """
-    
-    def __init__(self, senseki=None, fu=None):
+
+    def __init__(self, ttl_path=None, htr_path=None, svr_path=None):
         # senseki is the dictionary of the game.
-        
-        # set fileutils instance
-        self.fu = fu
-        
-        # add game data to the history.
-        self.fu.update_history(senseki)
-        
-        
-    def  _update_history(self, senseki):
-        # add new game.
-        self.history.append(
-            senseki,
-            ignore_index=True
-            )
-    
-    
-    def get_win_rate(self, type='win', *args):
-        """
-        calculate win_rate or lose, draw rate for each kwargs.
-        ex)
-        * args == (),return usual win_rate
-        * args != (), return win_rate for each factor. as dict.
-        argument:
-            type: string. 'win', 'lose', or 'draw'.
-                when another keyword would be given, 
-                this method would calculate win_rate.
-            *args: string. can set 'stage', 'hunter',
-                '<surviver_name>', or some factor you added
-                as custom factor.
-        """
-        # if type is not 'lose' or 'draw',
-        # type would change into 'win'.
-        if not type in ('lose', 'draw'):
-            type = 'win'
-        
-        # initialize return dictionary
-        # key: given keywords
-        # value: win or lose or draw rate.
-        ret = {}
-        
-        # build return dictionary
-        # if args is (), return normal rate.
-        if args == ():
-            # ret['normal'] == scalar number.
-            ret['normal'] = self._calc_rate(type)
-        
-        else:
-            # if args is not (), return for each keywords
-            for arg in set(args):
-                # ret[arg] == dictionary.
-                ret[arg] = self._calc_rate(type, arg)
-        
-        # return
-        return ret
-    
-    
-    def _calc_rate(self, type=None, arg=None):
-        # type should be in ('win', 'lose', 'draw')
-        # calc data from history data.
+
+        # get history data
+        self.total = pandas.ExcelFile(ttl_path).parse('total')
+        self.hunter = pandas.ExcelFile(htr_path).parse('hunter')
+        self.surviver = pandas.ExcelFile(svr_path).parse('surviver')
+        self.param1 = pandas.ExcelFile(svr_path).parse('param1')
+        self.param2 = pandas.ExcelFile(svr_path).parse('param2')
+        self.param3 = pandas.ExcelFile(svr_path).parse('param3')
+        self.param4 = pandas.ExcelFile(svr_path).parse('param4')
+        self.param5 = pandas.ExcelFile(svr_path).parse('param5')
+
+    def _calc_total_rate(self, fact='ifvic', type='shouri', arg=None):
         if arg is None:
             # normal win rate
-            return len(self.history['id']) / sum(self.history[type])
-            
+            return len(self.total[self.total[fact] == type]) \
+                / len(self.total['game_id'])
         else:
-            # initialize return dictionary
             ret = {}
-            
-            # when arg is given,
-            # 1. get all values for the arg.
             values = self._get_values_from_arg(arg)
-            
-            # 2. calc win-rate for all values.
             for value in values:
-                # get information of games.
-                # Because self.history[type] is always one-hot vector,
-                # we can calculate win-rate by len(games) / sum(games)
-                games = [t for i, t in enumerate(self.history[type]) \
-                                if value in self.history[arg][i]]
-                ret[value] = len(games) / sum(games)
-            
-            # return
+                games = self.total[self.total[arg] == value]
+                ret[value] = len(games[games[fact] == type]) / len(games)
             return ret
-    
+
     def _get_values_from_arg(self, arg):
-        # get values from arg.
-        data = self.history[arg]
-        
-        # when arg is 'surviver', data is 2d-array,
-        # which must be flattened.
-        if len(data[0]) > 2:
-            for ret in data:
-                ret.extend(ret)
-            ret = set(ret)
-        else:
-            ret = set(data)
-        
-        # return
+        data = self.total[arg]
+        ret = list(set(data))
         return ret
+
+    def get_win_rate(self, fact='ifvic', type="shouri", *args):
+
+        ret = {}
+        if args == ():
+            ret[type] = self._calc_total_rate(type)
+        else:
+            for arg in set(args):
+                ret[arg] = self._calc_total_rate(type, arg)
+        return ret
+
+    def get_hunter_rate(self):
+        """return using rate of hunter."""
+        ret = {}
+        hunters = self._get_values_from_arg('hunter')
+        for hunter in hunters:
+            ret[hunter] = self._calc_total_rate('hunter', hunter)
+        return ret
+
+    def get_stage_rate(self):
+        """return using rate of hunter."""
+        ret = {}
+        stages = self._get_values_from_arg('stage')
+        for stage in stages:
+            ret[stage] = self._calc_total_rate('stage', stage)
+        return ret
+
+    def get_survs_rate(self):
+        """return using rate of hunter."""
+        ret = {}
+        _survs = self._get_values_from_arg('surviver1')
+        print(type(_survs))
+        _survs.extend(self._get_values_from_arg('surviver2'))
+        _survs.extend(self._get_values_from_arg('surviver3'))
+        _survs.extend(self._get_values_from_arg('surviver4'))
+        survs = set(_survs)
+        for surv in survs:
+            suv1 = len(self.surviver[self.surviver['surviver1'] == surv]) \
+                / len(self.surviver['game_id'])
+            suv2 = len(self.surviver[self.surviver['surviver2'] == surv]) \
+                / len(self.surviver['game_id'])
+            suv3 = len(self.surviver[self.surviver['surviver3'] == surv]) \
+                / len(self.surviver['game_id'])
+            suv4 = len(self.surviver[self.surviver['surviver4'] == surv]) \
+                / len(self.surviver['game_id'])
+            ret[surv] = sum([suv1, suv2, suv3, suv4]) / 4
+        return ret
+
+
+if __name__ == '__main__':
+    ttl_path = '../data/excel/history/total.xlsx'
+    htr_path = '../data/excel/history/hunter.xlsx'
+    svr_path = '../data/excel/history/surviver.xlsx'
+    m = Math_utils(ttl_path, htr_path, svr_path)
+    print(m.get_survs_rate())
