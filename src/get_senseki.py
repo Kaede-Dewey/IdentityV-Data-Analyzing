@@ -3,6 +3,7 @@ import sys
 import glob
 import random
 import string
+import re
 
 import cv2
 from PIL import Image
@@ -20,17 +21,18 @@ class Senseki(object):
         senseki(dict): stores values for the game.
             Keys: ifvic, stage, charactor-n
     """
-    def __init__(self, image_path):
+    def __init__(self, image_path, trim_csv, icon_path):
         self.senseki = {}
 
         # get image of the game
         self._get_image(image_path)
+        self.game_size = (len(self.image[0]), len(self.image))
         game_id = self._gen_id(10)
         self.senseki['game_id'] = game_id
 
         # set csv paths
-        self.trim_csv_data = '../data/excel/trim/trim_vec.xlsx'
-        self.icon_path = '../data/img/icons/'
+        self.trim_csv_data = trim_csv + '/trim_vec.xlsx'
+        self.icon_path = icon_path
 
         # default charactor names. can be changed when a large update comes.
         charactors = [
@@ -66,8 +68,48 @@ class Senseki(object):
             # get value(scalar or list)
             value = self._get_value(icon)
 
+            ifex = False
+            if number in ('param1', 'param5'):
+                ifex = True
+
+            # fix bug number for senseki
+            value = self._fix_number(value, ifex, number)
+
             # set values on dictionary
             self.senseki[number] = value
+
+    def _fix_number(self, values, ifex=False, number=None):
+        ret = []
+        for i, v in enumerate(values):
+            if ifex:
+                if self.senseki['ifvic'][0] != 'sippai':
+                    if i != 0:
+                        v = v[:-1]
+                else:
+                    if i != 4:
+                        v = v[:-1]
+            value = v.replace('T','7')
+            value = value.replace('B','8')
+            value = value.replace('O','0')
+            value = value.replace('i','1')
+            value = value.replace('j','1')
+            value = value.replace('l','1')
+            value = value.replace('A','4')
+            value = value.replace('eI','9')
+            value = value.replace('&','8')
+            value = value.replace('Q','0')
+            value = value.replace('a','4')
+            value = value.replace('§','5')
+            value = value.replace('am1','3')
+            value = value.replace('-','')
+            value = value.replace('s','')
+            value = value.replace('ｓ','')
+            value = re.sub(r'\D', '', value)
+            if number == 'time':
+                value = value.zfill(4)[:2] \
+                    + ':' + value.zfill(4)[2:]
+            ret.append(value)
+        return ret
 
     def _gen_id(self, n):
         randlst = [random.choice(string.ascii_letters + string.digits) for i in range(n)]
@@ -92,11 +134,11 @@ class Senseki(object):
         return name: charactor name or ifvic or stage name. (string)
         """
         if charactor == 'ifvic':
-            icon_paths = glob.glob(self.icon_path + 'ifvic/*.png')
+            icon_paths = glob.glob(self.icon_path + '/ifvic/*.png')
         elif charactor == 'charactor':
-            icon_paths = glob.glob(self.icon_path + 'charactor/*.png')
+            icon_paths = glob.glob(self.icon_path + '/charactor/*.png')
         elif charactor == 'stage':
-            icon_paths = glob.glob(self.icon_path + 'stage/*.png')
+            icon_paths = glob.glob(self.icon_path + '/stage/*.png')
         else:
             raise ValueError('charactor is not defined.')
         names = []
@@ -119,14 +161,17 @@ class Senseki(object):
 
     def _get_distance(self, charactor, t_des, compare, bf, det):
         comp = cv2.imread(compare, cv2.IMREAD_GRAYSCALE)
-        if charactor == 'charactor':
-            comp = cv2.resize(comp, dsize=(150, 150))
+        if comp is not None:
+            if charactor == 'charactor':
+                comp = cv2.resize(comp, dsize=(150, 150))
+            else:
+                comp = cv2.resize(comp, dsize=(250, 100))
+            c_kp, c_des = det.detectAndCompute(comp, None)
+            match = bf.match(t_des, c_des)
+            dist = [m.distance for m in match]
+            return sum(dist) / len(dist)
         else:
-            comp = cv2.resize(comp, dsize=(250, 100))
-        c_kp, c_des = det.detectAndCompute(comp, None)
-        match = bf.match(t_des, c_des)
-        dist = [m.distance for m in match]
-        return sum(dist) / len(dist)
+            pass
 
     def _get_icon(self, charactor=None):
         """
@@ -149,14 +194,14 @@ class Senseki(object):
                 ltop = img[0][0]
                 rbtm = img[-1][-1]
                 min_col = np.array([
-                    min(ltop[0], rbtm[0])-10,
-                    min(ltop[1], rbtm[1])-10,
-                    min(ltop[2], rbtm[2])-10
+                    min(ltop[0], rbtm[0])-15,
+                    min(ltop[1], rbtm[1])-15,
+                    min(ltop[2], rbtm[2])-15
                     ])
                 max_col = np.array([
-                    max(ltop[0], rbtm[0])+10,
-                    max(ltop[1], rbtm[1])+10,
-                    max(ltop[2], rbtm[2])+10
+                    max(ltop[0], rbtm[0])+15,
+                    max(ltop[1], rbtm[1])+15,
+                    max(ltop[2], rbtm[2])+15
                 ])
                 img_mask = cv2.inRange(img, min_col, max_col)
                 result = cv2.bitwise_and(img, img, mask=img_mask)
@@ -176,10 +221,10 @@ class Senseki(object):
         data = pd.ExcelFile(self.trim_csv_data).parse(charactor)
         return [
             [
-            data['startx'][i], # starting x-coordinate
-            data['endx'][i],# width
-            data['starty'][i], # starting y-coordinate
-            data['endy'][i] # height
+            int(data['sxr'][i] * self.game_size[1]), # starting x-coordinate
+            int(data['exr'][i] * self.game_size[1]),# width
+            int(data['syr'][i] * self.game_size[0]), # starting y-coordinate
+            int(data['eyr'][i] * self.game_size[0]) # height
             ]
             for i in range(len(data['startx']))
             ]
@@ -212,14 +257,14 @@ class Senseki(object):
             sheet_2-sheet_6: param1-5
         """
         # search excel files
-        excel_files = glob.glob(outdir+'*.xlsx')
+        excel_files = glob.glob(outdir+'/*.xlsx')
         new = False
         if excel_files == []:
             # excel_fileを新規に作成するとき
             excel_files = [
-                outdir + 'total.xlsx',
-                outdir + 'hunter.xlsx',
-                outdir + 'surviver.xlsx'
+                outdir + '/total.xlsx',
+                outdir + '/hunter.xlsx',
+                outdir + '/surviver.xlsx'
             ]
             new = True
             excel = None
@@ -253,13 +298,16 @@ class Senseki(object):
                         [
                             self.senseki['game_id'],
                             self.senseki['ifvic'][0],
+                            self.senseki['stage'][0],
+                            self.senseki['time'][0],
                             self.senseki['charactor'][0],
                             self.senseki['charactor'][1],
                             self.senseki['charactor'][2],
                             self.senseki['charactor'][3],
                             self.senseki['charactor'][4]
                         ],
-                            index = [ 'game_id', 'ifvic', 'hunter',
+                            index = [   'game_id', 'ifvic',
+                                        'stage', 'time', 'hunter',
                                         'surviver1', 'surviver2',
                                         'surviver3', 'surviver4']
                         )
@@ -268,13 +316,16 @@ class Senseki(object):
                         [
                             self.senseki['game_id'],
                             self.senseki['ifvic'][0],
+                            self.senseki['stage'][0],
+                            self.senseki['time'][0],
                             self.senseki['charactor'][4],
                             self.senseki['charactor'][0],
                             self.senseki['charactor'][1],
                             self.senseki['charactor'][2],
                             self.senseki['charactor'][3]
                         ],
-                            index = [ 'game_id', 'ifvic', 'hunter',
+                            index = [   'game_id', 'ifvic',
+                                        'stage', 'time', 'hunter',
                                         'surviver1', 'surviver2',
                                         'surviver3', 'surviver4']
                         )
@@ -482,13 +533,16 @@ class Senseki(object):
                     [
                         self.senseki['game_id'],
                         self.senseki['ifvic'][0],
+                        self.senseki['stage'][0],
+                        self.senseki['time'][0],
                         self.senseki['charactor'][0],
                         self.senseki['charactor'][1],
                         self.senseki['charactor'][2],
                         self.senseki['charactor'][3],
                         self.senseki['charactor'][4]
                     ]],
-                        columns = [ 'game_id', 'ifvic', 'hunter',
+                        columns = [ 'game_id', 'ifvic',
+                                    'stage', 'time', 'hunter',
                                     'surviver1', 'surviver2',
                                     'surviver3', 'surviver4']
                     )
@@ -497,13 +551,15 @@ class Senseki(object):
                     [
                         self.senseki['game_id'],
                         self.senseki['ifvic'][0],
+                        self.senseki['stage'][0],
                         self.senseki['charactor'][4],
                         self.senseki['charactor'][0],
                         self.senseki['charactor'][1],
                         self.senseki['charactor'][2],
                         self.senseki['charactor'][3]
                     ]],
-                        columns = [ 'game_id', 'ifvic', 'hunter',
+                        columns = [ 'game_id', 'ifvic',
+                                    'stage', 'hunter',
                                     'surviver1', 'surviver2',
                                     'surviver3', 'surviver4']
                     )
@@ -721,9 +777,28 @@ class Senseki(object):
         return ret
 
 if __name__ == '__main__':
-    img_dir = '../data/img/senseki/'
-    outdir = '../data/excel/history/'
-    for i, path in enumerate(glob.glob(img_dir + '*.png')):
-        s = Senseki(path)
+    img_paths = sys.argv[1:]
+    data = open('./conf/path.conf').readlines()
+    for all in data:
+        name, path = all.split('=')
+        if name == 'excel_path':
+            outdir = path.strip('\n')
+        elif name == 'trim_path':
+            trim_path = path.strip('\n')
+        elif name == 'icon_path':
+            icon_path = path.strip('\n')
+
+    for i, path in enumerate(img_paths):
+        print('現在'+os.path.basename(path)+'を処理しています...')
+        s = Senseki(path, trim_path, icon_path)
+        print('使用されたキャラ：%s, %s, %s, %s, %s' % \
+            (s.senseki['charactor'][0],
+            s.senseki['charactor'][1],
+            s.senseki['charactor'][2],
+            s.senseki['charactor'][3],
+            s.senseki['charactor'][4]
+            )
+        )
+        print('保存しています...')
         s.save(outdir)
-        print(i)
+        print('終了しました。')
