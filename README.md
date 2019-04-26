@@ -29,6 +29,7 @@
 1. [python公式のダウンロードサイト](https://www.python.org/downloads/)にいって、ダウンロードする。バージョンは、3.~ならオッケー
 
 2. ダウンロードしたものを実行して、インストールを進めていく。この時、一番最初の画面で、下の部分にチェックを入れておく
+
 ![画像3](https://github.com/Kaede-Dewey/image_repo/blob/master/%E7%AC%AC%E4%BA%94%E4%BA%BA%E6%A0%BC%E6%88%A6%E7%B8%BE%E7%AE%A1%E7%90%86%E3%83%84%E3%83%BC%E3%83%AB/3.png)
 
 3. ターミナルを開いてみて、python(or python3)と打って、下のようになったらstage-2へ。
@@ -88,6 +89,7 @@ pip install requirements.txt
 ### stage-3 戦績画像の準備
 1. 下のような戦績画像を準備する。スクショでおけ
 ![画像4](https://github.com/Kaede-Dewey/image_repo/blob/master/%E7%AC%AC%E4%BA%94%E4%BA%BA%E6%A0%BC%E6%88%A6%E7%B8%BE%E7%AE%A1%E7%90%86%E3%83%84%E3%83%BC%E3%83%AB/4.PNG)
+
 これは、戦績→データから見ることができる。
 
 2. その画像を、まとめておきたい人は./data/img/sensekiにおいておくといいかも。
