@@ -95,8 +95,9 @@ pip install requirements.txt
 2. その画像を、まとめておきたい人は./data/img/sensekiにおいておくといいかも。
 
 3. 戦績管理ツールに追加する画像を選択して、戦績追加にD&Dする。
-![画像5](https://github.com/Kaede-Dewey/image_repo/blob/master/%E7%AC%AC%E4%BA%94%E4%BA%BA%E6%A0%BC%E6%88%A6%E7%B8%BE%E7%AE%A1%E7%90%86%E3%83%84%E3%83%BC%E3%83%AB/5.png)
 
+![画像5](https://github.com/Kaede-Dewey/image_repo/blob/master/%E7%AC%AC%E4%BA%94%E4%BA%BA%E6%A0%BC%E6%88%A6%E7%B8%BE%E7%AE%A1%E7%90%86%E3%83%84%E3%83%BC%E3%83%AB/5.png)
+  
 4. 追加した画像を解析して、保存してくれるので、あとはいろいろデータの推移などを見ていく感じ
 
 ### 戦績管理ツール
