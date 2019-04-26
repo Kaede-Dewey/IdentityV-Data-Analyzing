@@ -1,0 +1,8 @@
+numpy
+pandas
+matplotlib
+opencv-python
+PyQt5
+pillow
+pyocr
+openpyxl
