@@ -86,6 +86,12 @@ pip install requirements.txt
 ```
 すると、いろいろダウンロードが始まるので、終わるまで待つ。
 
+4. tesseractを[こちら](https://github.com/UB-Mannheim/tesseract/wiki)のサイトから、自分のPCにあったものを選んでダウンロード。32bitか64bitかを確認してダウンロードすること
+
+5. ダウンロードしたら、実行してインストールする。インストールできたら終わり
+インストールする場所は自由にどぞ！　additional languageとか、そういったオプションは全部いらないです。
+
+
 ### stage-3 戦績画像の準備
 1. 下のような戦績画像を準備する。スクショでおけ
 ![画像4](https://github.com/Kaede-Dewey/image_repo/blob/master/%E7%AC%AC%E4%BA%94%E4%BA%BA%E6%A0%BC%E6%88%A6%E7%B8%BE%E7%AE%A1%E7%90%86%E3%83%84%E3%83%BC%E3%83%AB/4.PNG)
